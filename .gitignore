@@ -2,3 +2,6 @@ target/
 /sdk-config-import/sdk-config-import/target/
 .idea/
 /research
+/*.iml
+
+test.properties
