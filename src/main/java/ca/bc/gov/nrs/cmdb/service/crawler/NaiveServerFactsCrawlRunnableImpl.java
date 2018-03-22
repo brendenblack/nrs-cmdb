@@ -112,7 +112,7 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable
 
         if (this.callback != null)
         {
-            this.callback.doCallback();
+            this.callback.doCallback(this.crawlId, this.sessionFactory.getHostname());
         }
     }
 
@@ -132,9 +132,11 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable
         {
             if (line.contains("="))
             {
+                log.trace("Line: {}", line);
                 properties.load(new StringReader(line));
             }
         }
+        log.trace("Found {} properties", properties.size());
 
         OperatingSystem os = new OperatingSystem();
         os.setFamily("Linux");
