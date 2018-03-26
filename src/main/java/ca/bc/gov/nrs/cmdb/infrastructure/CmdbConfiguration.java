@@ -11,7 +11,12 @@ package ca.bc.gov.nrs.cmdb.infrastructure;
  * @author George
  */
 
+import com.tinkerpop.blueprints.Graph;
+import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
+
+import com.tinkerpop.blueprints.impls.tg.TinkerGraphFactory;
+import com.tinkerpop.gremlin.java.GremlinPipeline;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
 //import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
 import org.springframework.context.annotation.Bean;

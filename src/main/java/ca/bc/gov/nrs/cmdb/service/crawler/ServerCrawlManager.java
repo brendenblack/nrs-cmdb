@@ -1,9 +1,7 @@
-package ca.bc.gov.nrs.cmdb.service;
+package ca.bc.gov.nrs.cmdb.service.crawler;
 
 import ca.bc.gov.nrs.cmdb.infrastructure.WebSocketConfig;
-import ca.bc.gov.nrs.cmdb.service.crawler.CrawlCallback;
-import ca.bc.gov.nrs.cmdb.service.crawler.NaiveServerFactsCrawlRunnableImpl;
-import ca.bc.gov.nrs.cmdb.service.crawler.OngoingCrawl;
+import ca.bc.gov.nrs.cmdb.model.vertices.ComputeNode;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
-public class ServerCrawlManager implements CrawlCallback
+public class ServerCrawlManager implements ServerFactCrawlCallback
 {
     private final static Logger log = LoggerFactory.getLogger(ServerCrawlManager.class);
 
@@ -27,12 +25,12 @@ public class ServerCrawlManager implements CrawlCallback
         this.template = template;
     }
 
-    public String doFactCrawlAsync(String fqdn, String username, String password)
+    public String doFactCrawlAsync(ComputeNode server, String username, String password)
     {
-        log.debug("Beginning asynchronous crawl of {}", fqdn);
-        if (ongoingFactCrawls.containsKey(fqdn))
+        log.debug("Beginning asynchronous crawl of {}", server.getFqdn());
+        if (ongoingFactCrawls.containsKey(server.getFqdn()))
         {
-            log.error("Already crawling {}", fqdn);
+            log.error("Already crawling {}", server.getFqdn());
             // fail
         }
 
@@ -41,16 +39,16 @@ public class ServerCrawlManager implements CrawlCallback
 
         CrawlUpdateMessage m = new CrawlUpdateMessage();
         m.setCrawlId(crawlId);
-        m.setFqdn(fqdn);
+        m.setFqdn(server.getFqdn());
         m.setStatus("Beginning");
         sendMessage(m);
 
-        NaiveServerFactsCrawlRunnableImpl crawl = new NaiveServerFactsCrawlRunnableImpl(crawlId, template, fqdn, username, password);
+        NaiveServerFactsCrawlRunnableImpl crawl = new NaiveServerFactsCrawlRunnableImpl(crawlId, template, server, username, password);
         crawl.setCallback(this);
         log.info("Beginning asynchronous crawl");
         new Thread(crawl).start();
 
-        ongoingFactCrawls.put(fqdn, crawl);
+        ongoingFactCrawls.put(server.getFqdn(), crawl);
         log.debug("Returning crawl id {}", crawlId);
         return crawlId;
     }
@@ -70,12 +68,12 @@ public class ServerCrawlManager implements CrawlCallback
 
 
     @Override
-    public void doCallback(String id, String fqdn)
+    public void doCallback(String crawlId, ComputeNode server)
     {
         log.debug("\nCallback triggered\n");
         CrawlUpdateMessage m = new CrawlUpdateMessage();
-        m.setCrawlId(id);
-        m.setFqdn(fqdn);
+        m.setCrawlId(crawlId);
+        m.setFqdn(server.getFqdn());
         m.setStatus("Ending");
         sendMessage(m);
     }
@@ -85,6 +83,8 @@ public class ServerCrawlManager implements CrawlCallback
         log.info("Sending message {}: {}", message.getCrawlId(), message.getStatus());
         template.convertAndSend(ServerCrawlManager.WEBSOCKET_ROOT, message);
     }
+
+
 
 
     @JsonAutoDetect

@@ -1,5 +1,6 @@
 package ca.bc.gov.nrs.cmdb.model.vertices;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,6 +31,8 @@ public class OperatingSystem
     private String variantId;
     private String version;
     private String versionName;
+
+    private List<Filesystem> filesystems = new ArrayList<>();
 
 
 
@@ -109,4 +112,16 @@ public class OperatingSystem
     {
         this.id = id;
     }
+
+    public void addFilesystem(Filesystem fs)
+    {
+        this.filesystems.add(fs);
+    }
+
+    public List<Filesystem> getFilesystems()
+    {
+        return this.filesystems;
+    }
+
+
 }

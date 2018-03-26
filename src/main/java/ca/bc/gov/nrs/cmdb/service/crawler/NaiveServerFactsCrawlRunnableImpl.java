@@ -1,9 +1,10 @@
 package ca.bc.gov.nrs.cmdb.service.crawler;
 
-import ca.bc.gov.nrs.cmdb.infrastructure.WebSocketConfig;
+import ca.bc.gov.nrs.cmdb.model.vertices.ComputeNode;
+import ca.bc.gov.nrs.cmdb.model.vertices.Filesystem;
 import ca.bc.gov.nrs.cmdb.model.vertices.OperatingSystem;
-import ca.bc.gov.nrs.cmdb.service.ServerCrawlManager;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.pastdev.jsch.DefaultSessionFactory;
 import com.pastdev.jsch.command.CommandRunner;
@@ -14,6 +15,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 
@@ -32,8 +35,8 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
 //    private final String username;
 //    private final String password;
     private final DefaultSessionFactory sessionFactory;
-    private final String fqdn;
-    private CrawlCallback callback;
+    private final ComputeNode server;
+    private ServerFactCrawlCallback callback;
 
     private boolean running = false;
     private Message status;
@@ -41,14 +44,14 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
     @Autowired
     public NaiveServerFactsCrawlRunnableImpl(String crawlId,
                                              SimpMessagingTemplate template,
-                                             String fqdn,
+                                             ComputeNode server,
                                              String username,
                                              String password)
     {
         this.crawlId = crawlId;
         this.template = template;
-        this.fqdn = fqdn;
-        DefaultSessionFactory sessionFactory = new DefaultSessionFactory(username, fqdn, 22);
+        this.server = server;
+        DefaultSessionFactory sessionFactory = new DefaultSessionFactory(username, server.getFqdn(), 22);
         sessionFactory.setPassword(password);
         sessionFactory.setConfig("StrictHostKeyChecking", "no"); // https://www.mail-archive.com/jsch-users@lists.sourceforge.net/msg00529.html
         this.sessionFactory = sessionFactory;
@@ -59,7 +62,7 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
 
         Message m = new Message();
         m.setStatus(Message.STATUS_INFO);
-        m.setFqdn(fqdn);
+        m.setFqdn(server.getFqdn());
         m.setMessage("Waiting...");
         this.status = m;
     }
@@ -91,6 +94,8 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
                 case "LINUX":
                     info("Host appears a Linux server");
                     os = getOsFactsFromLinux(sessionFactory);
+                    List<Filesystem> filesystems =  getFilesystemsFromLinux(sessionFactory);
+
                     break;
                 case "SUNOS":
                     info("Host appears to be a Solaris server");
@@ -111,16 +116,24 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
             return;
         }
 
+        this.server.setOperatingSystem(os);
+
         if (this.callback != null)
         {
-            this.callback.doCallback(this.crawlId, this.sessionFactory.getHostname());
+            this.callback.doCallback(this.crawlId, this.server);
         }
+    }
+
+    @Override
+    public String getId()
+    {
+        return this.crawlId;
     }
 
     @Override
     public String getFqdn()
     {
-        return this.fqdn;
+        return this.server.getFqdn();
     }
 
     @Override
@@ -129,7 +142,7 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
         return this.status;
     }
 
-    public void setCallback(CrawlCallback callback)
+    public void setCallback(ServerFactCrawlCallback callback)
     {
         this.callback = callback;
     }
@@ -166,6 +179,76 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
                   os.getName());
 
         return os;
+    }
+
+    public List<Filesystem> getFilesystemsFromLinux(DefaultSessionFactory sessionFactory) throws IOException, JSchException
+    {
+        String command = "df -T";
+        String result = doExecuteCommand(sessionFactory, command);
+        String[] lines = result.split("\n");
+        List<Filesystem> filesystems = new ArrayList<>();
+        for (String line : lines)
+        {
+            line = line.replaceAll("\\s+", "\\s");
+            String[] cols = line.split("\\s");
+            StringBuilder sb = new StringBuilder();
+            for (String col : cols)
+            {
+                sb.append(col).append(" ");
+            }
+            log.debug(sb.toString());
+
+            if (cols.length == 7)
+            {
+                Filesystem fs = new Filesystem();
+
+                fs.setName(cols[0]);
+                fs.setType(cols[1]);
+                try
+                {
+                    long size = Long.parseLong(cols[2]);
+                    fs.setSize(size);
+                }
+                catch (NumberFormatException e)
+                {
+                    fs.setSize(-1);
+                }
+
+                try
+                {
+                    long used = Long.parseLong(cols[3]);
+                    fs.setSize(used);
+                }
+                catch (NumberFormatException e)
+                {
+                    fs.setSize(-1);
+                }
+
+                try
+                {
+                    long avail = Long.parseLong(cols[4]);
+                    fs.setSize(avail);
+                }
+                catch (NumberFormatException e)
+                {
+                    fs.setSize(-1);
+                }
+
+                fs.setMountedOn(cols[6]);
+
+                log.debug("Filesystem [name: {}] [type: {}] [size: {}] [used: {}] [avail: {}] [mounted: {}]",
+                          fs.getName(),
+                          fs.getType(),
+                          fs.getSize(),
+                          fs.getUsed(),
+                          fs.getAvailable(),
+                          fs.getMountedOn());
+
+                filesystems.add(fs);
+            }
+        }
+
+        return filesystems;
     }
 
     public OperatingSystem getOsFactsFromSolaris(DefaultSessionFactory sessionFactory)
@@ -258,7 +341,8 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
     public void sendProgress(Message message)
     {
         this.status = message;
-        template.convertAndSend(ServerCrawlManager.WEBSOCKET_ROOT + "/" + this.crawlId, this.status);
+        //  + "/" + this.crawlId
+        template.convertAndSend(ServerCrawlManager.WEBSOCKET_ROOT, this.status);
     }
     //endregion
 

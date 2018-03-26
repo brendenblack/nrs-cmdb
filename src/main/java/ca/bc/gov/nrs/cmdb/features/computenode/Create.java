@@ -110,6 +110,8 @@ public class Create
         {
             ComputeNode server = this.deviceService.getServer(command.getFqdn());
 
+
+
             if (server != null)
             {
                 log.info("A vertex with fqdn {} already exists with id {}",

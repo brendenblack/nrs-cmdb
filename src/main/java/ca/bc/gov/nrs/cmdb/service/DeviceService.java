@@ -92,7 +92,6 @@ public class DeviceService
             try
             {
 
-
             }
             finally
             {

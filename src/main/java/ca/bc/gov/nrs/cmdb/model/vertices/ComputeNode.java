@@ -13,6 +13,7 @@ public class ComputeNode
     public static final String CLASS_NAME = "ComputeNode";
 
     public static final String ATTRIBUTE_ARCHITECTURE = "architecture";
+    public static final String ATTRIBUTE_IP_ADDRESS = "ipaddress";
     public static final String ATTRIBUTE_BIOS_DATE = "biosdate";
     public static final String ATTRIBUTE_BIOS_VERSION = "biosversion";
     public static final String ATTRIBUTE_HOST_NAME = "hostname";
@@ -29,6 +30,7 @@ public class ComputeNode
     );
 
     public static final String LINK_IS_LOCATED_IN = "Is_Located_In";
+    public static final String LINK_HAS_OS = "Has_OS";
 
 
 
@@ -37,9 +39,10 @@ public class ComputeNode
     private String fqdn;
     private Region region;
     private String name;
-    private String operationSystemFamily;
     private InetAddress ipAddress;
     private List<String> labels = new ArrayList<>();
+    private OperatingSystem os;
+
 
     public ComputeNode() {}
 
@@ -108,12 +111,14 @@ public class ComputeNode
 
     public String getOperationSystemFamily()
     {
-        return operationSystemFamily;
-    }
-
-    public void setOperationSystemFamily(String operationSystemFamily)
-    {
-        this.operationSystemFamily = operationSystemFamily;
+        if (this.os != null)
+        {
+            return this.os.getFamily();
+        }
+        else
+        {
+            return "";
+        }
     }
 
     public String getId()
@@ -134,5 +139,16 @@ public class ComputeNode
     public void setRegion(Region region)
     {
         this.region = region;
+    }
+
+    
+    public OperatingSystem getOperatingSystem()
+    {
+        return this.os;
+    }
+
+    public void setOperatingSystem(OperatingSystem os)
+    {
+        this.os = os;
     }
 }

@@ -1,8 +1,8 @@
 package ca.bc.gov.nrs.cmdb.features.computenode;
 
+import ca.bc.gov.nrs.cmdb.features.computenode.crawl.DoCrawl;
 import ca.bc.gov.nrs.cmdb.infrastructure.RestException;
 import ca.bc.gov.nrs.cmdb.infrastructure.RestModel;
-import ca.bc.gov.nrs.cmdb.service.ServerCrawlManager;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,7 +31,7 @@ public class ComputeNodeController
     private final Create.Handler createDeviceHandler;
     private final Options.Handler optionsHandler;
     private final Delete.Handler deleteHandler;
-    private final Crawl.Handler crawlHandler;
+    private final DoCrawl.Handler crawlHandler;
     private final SimpMessagingTemplate template;
     private final OrientGraphFactory factory;
 
@@ -42,7 +41,7 @@ public class ComputeNodeController
                                  Create.Handler createDeviceHandler,
                                  Options.Handler optionsHandler,
                                  Delete.Handler deleteHandler,
-                                 Crawl.Handler crawlHandler,
+                                 DoCrawl.Handler crawlHandler,
                                  SimpMessagingTemplate template,
                                  OrientGraphFactory factory)
     {
@@ -153,7 +152,7 @@ public class ComputeNodeController
 
 
     @PutMapping("crawl")
-    public void doCrawl(@RequestBody Crawl.Command message, HttpServletResponse response)
+    public void doCrawl(@RequestBody DoCrawl.Command message, HttpServletResponse response)
     {
         RestModel result = this.crawlHandler.handle(message);
 

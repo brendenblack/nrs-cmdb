@@ -1,7 +1,7 @@
 package ca.bc.gov.nrs.cmdb.features.computenode.crawl;
 
 import ca.bc.gov.nrs.cmdb.infrastructure.RestModel;
-import ca.bc.gov.nrs.cmdb.service.ServerCrawlManager;
+import ca.bc.gov.nrs.cmdb.service.crawler.ServerCrawlManager;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Component;

@@ -1,15 +1,17 @@
-package ca.bc.gov.nrs.cmdb.features.computenode;
+package ca.bc.gov.nrs.cmdb.features.computenode.crawl;
 
+import ca.bc.gov.nrs.cmdb.infrastructure.RestException;
 import ca.bc.gov.nrs.cmdb.infrastructure.RestModel;
+import ca.bc.gov.nrs.cmdb.model.vertices.ComputeNode;
 import ca.bc.gov.nrs.cmdb.service.DeviceService;
-import ca.bc.gov.nrs.cmdb.service.ServerCrawlManager;
+import ca.bc.gov.nrs.cmdb.service.crawler.ServerCrawlManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-public class Crawl
+public class DoCrawl
 {
     public static class Command
     {
@@ -72,9 +74,17 @@ public class Crawl
             log.debug("Received crawl request: [fqdn: {}] [user: {}]", message.getFqdn(),
                       message.getUsername());
 
-            String id = this.crawlManager.doFactCrawlAsync(message.getFqdn(),
-                                               message.getUsername(),
-                                               message.getPassword());
+            ComputeNode server = this.deviceService.getServer(message.getFqdn());
+
+            if (server == null)
+            {
+                log.warn("Unable to find a server record with a fully qualified domain name of {}", message.getFqdn());
+                throw new RestException(HttpStatus.NOT_FOUND, "Unable to find a server record with a fully qualified domain name of " + message.getFqdn());
+            }
+
+            String id = this.crawlManager.doFactCrawlAsync(server,
+                   message.getUsername(),
+                   message.getPassword()); // TODO: retrieve credentials rather than providing them
 
             RestModel<Model> model = new RestModel<>();
             model.setStatusCode(HttpStatus.ACCEPTED);
