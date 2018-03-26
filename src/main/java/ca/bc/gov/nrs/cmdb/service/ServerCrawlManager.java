@@ -3,15 +3,14 @@ package ca.bc.gov.nrs.cmdb.service;
 import ca.bc.gov.nrs.cmdb.infrastructure.WebSocketConfig;
 import ca.bc.gov.nrs.cmdb.service.crawler.CrawlCallback;
 import ca.bc.gov.nrs.cmdb.service.crawler.NaiveServerFactsCrawlRunnableImpl;
+import ca.bc.gov.nrs.cmdb.service.crawler.OngoingCrawl;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class ServerCrawlManager implements CrawlCallback
@@ -19,7 +18,7 @@ public class ServerCrawlManager implements CrawlCallback
     private final static Logger log = LoggerFactory.getLogger(ServerCrawlManager.class);
 
     private final SimpMessagingTemplate template;
-    private Map<String, NaiveServerFactsCrawlRunnableImpl> ongoingFactCrawls = new HashMap<>();
+    private static Map<String, NaiveServerFactsCrawlRunnableImpl> ongoingFactCrawls = new HashMap<>();
 
     public static final String WEBSOCKET_ROOT = WebSocketConfig.BROKER_ROOT_PATH + "/crawl";
 
@@ -31,7 +30,7 @@ public class ServerCrawlManager implements CrawlCallback
     public String doFactCrawlAsync(String fqdn, String username, String password)
     {
         log.debug("Beginning asynchronous crawl of {}", fqdn);
-        if (this.ongoingFactCrawls.containsKey(fqdn))
+        if (ongoingFactCrawls.containsKey(fqdn))
         {
             log.error("Already crawling {}", fqdn);
             // fail
@@ -51,10 +50,24 @@ public class ServerCrawlManager implements CrawlCallback
         log.info("Beginning asynchronous crawl");
         new Thread(crawl).start();
 
-        this.ongoingFactCrawls.put(fqdn, crawl);
+        ongoingFactCrawls.put(fqdn, crawl);
         log.debug("Returning crawl id {}", crawlId);
         return crawlId;
     }
+
+    public List<OngoingCrawl> getOngoingFactCrawls()
+    {
+        List<OngoingCrawl> crawls = new ArrayList<>();
+
+        for (String id : ongoingFactCrawls.keySet())
+        {
+            NaiveServerFactsCrawlRunnableImpl runnable = ongoingFactCrawls.get(id);
+            crawls.add(runnable);
+        }
+
+        return crawls;
+    }
+
 
     @Override
     public void doCallback(String id, String fqdn)

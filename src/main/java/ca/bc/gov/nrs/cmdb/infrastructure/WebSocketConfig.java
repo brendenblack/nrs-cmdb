@@ -17,14 +17,15 @@ public class WebSocketConfig extends AbstractWebSocketMessageBrokerConfigurer
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry)
     {
-        registry.enableSimpleBroker(BROKER_ROOT_PATH);
-        registry.setApplicationDestinationPrefixes("/app");
+        registry.setApplicationDestinationPrefixes("/app")
+                .enableSimpleBroker(BROKER_ROOT_PATH);
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry stompEndpointRegistry)
     {
-        stompEndpointRegistry.addEndpoint("/gs-guide-websocket")
+        // gs-guide-websocket
+        stompEndpointRegistry.addEndpoint("/socket")
                 .setAllowedOrigins("*")
                 .withSockJS();
     }

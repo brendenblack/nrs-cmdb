@@ -12,10 +12,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -30,6 +33,7 @@ public class ComputeNodeController
     private final Options.Handler optionsHandler;
     private final Delete.Handler deleteHandler;
     private final Crawl.Handler crawlHandler;
+    private final SimpMessagingTemplate template;
     private final OrientGraphFactory factory;
 
 
@@ -39,6 +43,7 @@ public class ComputeNodeController
                                  Options.Handler optionsHandler,
                                  Delete.Handler deleteHandler,
                                  Crawl.Handler crawlHandler,
+                                 SimpMessagingTemplate template,
                                  OrientGraphFactory factory)
     {
         this.createDeviceHandler = createDeviceHandler;
@@ -46,6 +51,7 @@ public class ComputeNodeController
         this.optionsHandler = optionsHandler;
         this.deleteHandler = deleteHandler;
         this.crawlHandler = crawlHandler;
+        this.template = template;
         this.factory = factory;
     }
 
@@ -136,6 +142,16 @@ public class ComputeNodeController
         this.deleteHandler.handle(message);
     }
 
+    @GetMapping("crawl")
+    public void doCrawl(HttpServletResponse response)
+    {
+        ca.bc.gov.nrs.cmdb.features.computenode.crawl.GetAll.Query message = new ca.bc.gov.nrs.cmdb.features.computenode.crawl.GetAll.Query();
+
+        //RestModel result = this.crawlGetAllHandler.handle(message);
+
+    }
+
+
     @PutMapping("crawl")
     public void doCrawl(@RequestBody Crawl.Command message, HttpServletResponse response)
     {
@@ -146,5 +162,11 @@ public class ComputeNodeController
         {
             response.addHeader(okey.toString(), result.getHeaders().get(okey).toString());
         }
+    }
+
+    @MessageMapping("/send/message")
+    public void onReceivedMessage(String message)
+    {
+        this.template.convertAndSend("/crawl", new SimpleDateFormat("HH:mm:ss").format(new Date()) + " - " + message);
     }
 }

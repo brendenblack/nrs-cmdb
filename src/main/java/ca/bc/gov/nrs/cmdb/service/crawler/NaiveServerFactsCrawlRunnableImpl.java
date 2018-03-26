@@ -20,7 +20,7 @@ import java.util.Properties;
 /**
  * Retrieves a set of facts about the target host
  */
-public class NaiveServerFactsCrawlRunnableImpl implements Runnable
+public class NaiveServerFactsCrawlRunnableImpl implements Runnable, OngoingCrawl
 {
     private static final Logger log = LoggerFactory.getLogger(NaiveServerFactsCrawlRunnableImpl.class);
 
@@ -32,6 +32,7 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable
 //    private final String username;
 //    private final String password;
     private final DefaultSessionFactory sessionFactory;
+    private final String fqdn;
     private CrawlCallback callback;
 
     private boolean running = false;
@@ -46,7 +47,7 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable
     {
         this.crawlId = crawlId;
         this.template = template;
-
+        this.fqdn = fqdn;
         DefaultSessionFactory sessionFactory = new DefaultSessionFactory(username, fqdn, 22);
         sessionFactory.setPassword(password);
         sessionFactory.setConfig("StrictHostKeyChecking", "no"); // https://www.mail-archive.com/jsch-users@lists.sourceforge.net/msg00529.html
@@ -114,6 +115,18 @@ public class NaiveServerFactsCrawlRunnableImpl implements Runnable
         {
             this.callback.doCallback(this.crawlId, this.sessionFactory.getHostname());
         }
+    }
+
+    @Override
+    public String getFqdn()
+    {
+        return this.fqdn;
+    }
+
+    @Override
+    public Message getStatus()
+    {
+        return this.status;
     }
 
     public void setCallback(CrawlCallback callback)

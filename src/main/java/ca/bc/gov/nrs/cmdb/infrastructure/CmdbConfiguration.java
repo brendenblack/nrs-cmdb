@@ -1,4 +1,4 @@
-package ca.bc.gov.nrs.cmdb;
+package ca.bc.gov.nrs.cmdb.infrastructure;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
